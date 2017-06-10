@@ -10,10 +10,10 @@
    Eric Vitale (https://github.com/ericvitale/SmartThingsPublic/blob/master/smartapps/dcoffing/3-speed-ceiling-fan-thermostat.src/3-speed-ceiling-fan-thermostat.groovy)
       
   Change Log
-  2017-06-07 Added an option to only run it if is between sunrise and sunset
-             Added the option to disable the speed control
-             Will only send a device command if the device is not already on that state.
-  2017-06-03 Added an option to check presence using a presence sensor.
+  2017-06-07 Added an option to only turn the fan on during the day (Sun is UP - Between SunRise and SunSet).  by Victor Welasco
+             Added the option to disable the speed control (If nothing is selected speed control will not be evaluated).  by Victor Welasco
+             Will only send a device command if the device is not already on that state.  by Victor Welasco
+  2017-06-03 Added an option to check presence using a presence sensor. - by Victor Welasco
   2017-04-11 Added 10.0 selection for Fan Differential Temp to mimic single speed control
   2016-10-19 Ver2 Parent / Child app to allow for multiple use cases with a single install - @ericvitale
   2016-06-30 added dynamic temperature display on temperature setpoint input text
