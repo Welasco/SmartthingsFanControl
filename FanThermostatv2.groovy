@@ -145,7 +145,7 @@ def childStartPage() {
 def optionsPage() {
 	dynamicPage(name: "optionsPage", title: "Configure Optional Settings", install: false, uninstall: false) {
        	section("Enter the desired differential temp between fan speeds"){
-			input "fanDiffTempString", "enum", title: "Fan Differential Temp", options: ["0.5","1.0","1.5","2.0"], required: false
+			input "fanDiffTempString", "enum", title: "Fan Differential Temp", options: ["0.5","1.0","1.5","2.0","10.0"], required: false
 		}
 		section("Enable ceiling fan thermostat only if motion is detected at (optional, leave blank to not require motion)..."){
 			input "motionSensor", "capability.motionSensor", title: "Select Motion device", required: false, submitOnChange: true
@@ -458,30 +458,3 @@ private def textHelp() {
         " designed specifically for motor control such as the GE 12730 Z-Wave Smart Fan Control or"+
         " Leviton VRF01-1LX works well together with this smartapp."
 }
-
-
-
-/*
-def initialSunPosition() {  
-	//Determine if sun is down at time of initializtion and run sunsetHandler() if so
-    //Light meter is not evaluated initially, light level first evaluated at first luminance event
-    log.debug "initialSunPosition()"
-	def s = getSunriseAndSunset(zipCode: zipCode, sunriseOffset: sunriseOffset, sunsetOffset: sunsetOffset)
-	def now = new Date()
-    def riseTime = s.sunrise
-	def setTime = s.sunset
-	state.ambient = "light"  //initialize to "light"
-    state.sunPosition = "up" //initialize to "up"
-
-    if(setTime.before(now) || riseTime.after(now)) {   //before midnight/after sunset or after midnight/before sunset (checking if the Sun is down)
-	  	log.info "Sun is already down, run sunsetHandler"
-        sunsetHandler()
-    }
-
-	scheduleSunEvents()													//setting initial rise/set 
-
-    unschedule(scheduleSunEvents)
-    schedule(timeToday("12:13",location.timeZone),scheduleSunEvents) 	//subsequent evaluation of rise/set times
-    																	//at 12:13PM every day
-}
-*/
