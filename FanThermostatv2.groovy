@@ -5,13 +5,17 @@
    This smartapp provides automatic control of Low, Medium, High speeds of a ceiling fan using 
    any temperature sensor with optional motion override. 
    It requires two hardware devices; any temperature sensor and a dimmer type smart fan controller
-   such as the GE 12730 or Leviton VRF01-1LX
+   such as the GE 12730 or Leviton VRF01-1LX. Incorporates contributions from:
    
+   Eric Vitale (https://github.com/ericvitale/SmartThingsPublic/blob/master/smartapps/dcoffing/3-speed-ceiling-fan-thermostat.src/3-speed-ceiling-fan-thermostat.groovy)
+      
   Change Log
   2017-06-07 Added an option to only run it if is between sunrise and sunset
              Added the option to disable the speed control
              Will only send a device command if the device is not already on that state.
   2017-06-03 Added an option to check presence using a presence sensor.
+  2017-04-11 Added 10.0 selection for Fan Differential Temp to mimic single speed control
+  2016-10-19 Ver2 Parent / Child app to allow for multiple use cases with a single install - @ericvitale
   2016-06-30 added dynamic temperature display on temperature setpoint input text
   2016-06-28 x.1 version update
   			added submitOnChange for motion so to skip minutes input next if no motion selected
@@ -62,19 +66,38 @@ definition(
     author: "Dale Coffing",
     description: "Automatic control for 3 Speed Ceiling Fan using Low, Medium, High speeds with any temperature sensor.",
     category: "My Apps",
+    singleInstance: true,
 	iconUrl: "https://raw.githubusercontent.com/dcoffing/SmartThingsPublic/master/smartapps/dcoffing/3-speed-ceiling-fan-thermostat.src/3scft125x125.png", 
    	iconX2Url: "https://raw.githubusercontent.com/dcoffing/SmartThingsPublic/master/smartapps/dcoffing/3-speed-ceiling-fan-thermostat.src/3scft250x250.png",
 	iconX3Url: "https://raw.githubusercontent.com/dcoffing/SmartThingsPublic/master/smartapps/dcoffing/3-speed-ceiling-fan-thermostat.src/3scft250x250.png",
 )
 
 preferences {
-	page(name: "mainPage")
+    page(name: "startPage")
+    page(name: "parentPage")
+    page(name: "childStartPage")
     page(name: "optionsPage")
     page(name: "aboutPage")
 }
 
-def mainPage() {
-	dynamicPage(name: "mainPage", title: "Select your devices and settings", install: true, uninstall: true) {
+def startPage() {
+    if (parent) {
+        childStartPage()
+    } else {
+        parentPage()
+    }
+}
+
+def parentPage() {
+	return dynamicPage(name: "parentPage", title: "", nextPage: "", install: false, uninstall: true) {
+        section("Create a new fan automation.") {
+            app(name: "childApps", appName: appName(), namespace: "dcoffing", title: "New Fan Automation", multiple: true)
+        }
+    }
+}
+
+def childStartPage() {
+	dynamicPage(name: "childStartPage", title: "Select your devices and settings", install: true, uninstall: true) {
     
         section("Select a room temperature sensor to control the fan..."){
 			input "tempSensor", "capability.temperatureMeasurement", multiple:false, title: "Temperature Sensor", required: true, submitOnChange: true  
@@ -101,10 +124,15 @@ def mainPage() {
         	page: "optionsPage"
         	)
         }
+
+        section("Name") {
+        	label(title: "Assign a name", required: false)
+        }
+
         section("Version Info, User's Guide") {
 // VERSION
 			href (name: "aboutPage", 
-			title: "3 Speed Ceiling Fan Thermostat \n"+"Version:1.1.160630 \n"+"Copyright © 2016 Dale Coffing", 
+			title: "3 Speed Ceiling Fan Thermostat \n"+"Version:3.170610 \n"+"Copyright © 2016 Dale Coffing", 
 			description: "Tap to get user's guide.",
 			image: "https://raw.githubusercontent.com/dcoffing/SmartThingsPublic/master/smartapps/dcoffing/3-speed-ceiling-fan-thermostat.src/3scft125x125.png",
 			required: false,
@@ -137,7 +165,6 @@ def optionsPage() {
 			input "autoMode", "enum", title: "Enable Ceiling Fan Thermostat?", options: ["NO-Manual","YES-Auto"], required: false
 		}
     	section ("Change SmartApp name, Mode selector") {
-		label title: "Assign a name", required: false
 		mode title: "Set for specific mode(s)", required: false
 		}
     }
@@ -150,6 +177,8 @@ def aboutPage() {
  		}
 	}
 }
+
+private def appName() { return "${parent ? "3 Speed Fan Automation" : "3 Speed Ceiling Fan Thermostat"}" }
 
 def installed() {
 	log.debug "def INSTALLED with settings: ${settings}"
@@ -164,6 +193,15 @@ def updated() {
 } 
 
 def initialize() {
+
+    if(parent) { 
+    	initChild() 
+    } else {
+    	initParent() 
+    }  
+}
+
+def initChild() {
 	log.debug "def INITIALIZE with settings: ${settings}"
 	subscribe(tempSensor, "temperature", temperatureHandler) //call temperatureHandler method when any reported change to "temperature" attribute
 	if (motionSensor) {
@@ -177,6 +215,10 @@ def initialize() {
         subscribe(location, "sunrise", sunsetsunriseHandler) //call the sunsetsunriseHandler method when the sunrise        
 	}    
 }
+        
+def initParent() {
+	log.debug "Parent Initialized"
+}        
                                    //Event Handler Methods                     
 def temperatureHandler(evt) {
 	log.debug "temperatureHandler called: $evt"	
