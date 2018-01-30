@@ -103,6 +103,8 @@ def parentPage() {
 	return dynamicPage(name: "parentPage", title: "", nextPage: "", install: false, uninstall: true) {
         section("Create a new fan automation.") {
             app(name: "childApps", appName: appName(), namespace: "dcoffing", title: "New Fan Automation", multiple: true)
+            //app(name: "childApps", appName: "3 and 4 Speed Ceiling Fan Thermostat", namespace: "dcoffing", title: "New Fan Automation", multiple: true)
+            
         }
     }
 }
@@ -127,11 +129,10 @@ def childStartPage() {
 	    	multiple:false, title: "Fan Control device", required: true
 		}
 
-        if(fanDimmer){
-            section("Enable 4 speed fan control:"){
-                input "4speedfan", "bool", title: "Select True or False:", defaultValue: false, required: false
-            }              
-        }
+        section("4 speed fan control:"){
+            input "speedfan4", "bool", title: "Enable if using 4 speed fan:", defaultValue: false, required: false
+        }              
+
 
         section("Optional Settings (Diff Temp, Timers, Motion, etc)") {
 			href (name: "optionsPage", 
@@ -351,14 +352,14 @@ private tempCheck(currentTemp, desiredTemp)
     //convert Fan Diff Temp input enum string to number value and if user doesn't select a Fan Diff Temp default to 1.0 
     //def fanDiffTempValue = (settings.fanDiffTempString != null && settings.fanDiffTempString != "") ? Double.parseDouble(settings.fanDiffTempString): 1.0
     def fanDiffTempValueSet = settings.fanDiffTempString
-	def 4speedfan = settings.4speedfan
+	def speedfan4 = settings.speedfan4
 
     //if user doesn't select autoMode then default to "YES-Auto"
     def autoModeValue = (settings.autoMode != null && settings.autoMode != "") ? settings.autoMode : "YES-Auto"	
 	writeLog("def TEMPCHECK - fanDiffTempValueSet:${fanDiffTempValueSet} autoModeValue:${autoModeValue}")
 	writeLog("def TEMPCHECK - TEMPCHECK#1(CT=$currentTemp,SP=$desiredTemp,FD=$fanDimmer.currentSwitch,FD_LVL=$fanDimmer.currentLevel, automode=$autoMode,FDTstring=$fanDiffTempString, FDTvalue=$fanDiffTempValue)")
 	if (autoModeValue == "YES-Auto") {
-        if(fanDiffTempValueSet && 4speedfan == false){
+        if(fanDiffTempValueSet && speedfan4 == false){
             def fanDiffTempValue = (settings.fanDiffTempString != null && settings.fanDiffTempString != "") ? Double.parseDouble(settings.fanDiffTempString): 1.0
             def LowDiff = fanDiffTempValue*1 
             def MedDiff = fanDiffTempValue*2
@@ -410,7 +411,7 @@ private tempCheck(currentTemp, desiredTemp)
                     writeLog("def TEMPCHECK - autoMode YES-MANUAL? else OFF(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, FD=$fanDimmer.currentSwitch,autoMode=$autoMode,)")
             }	
         }
-        else if(fanDiffTempValueSet && 4speedfan == true){
+        else if(fanDiffTempValueSet && speedfan4 == true){
             def fanDiffTempValue = (settings.fanDiffTempString != null && settings.fanDiffTempString != "") ? Double.parseDouble(settings.fanDiffTempString): 1.0
             def LowDiff = fanDiffTempValue*1 
             def MedDiff = fanDiffTempValue*2
@@ -599,11 +600,11 @@ private switchOnLevel(level)
     state.switchTurnedOnbyApp = true
     writeLog("def SWITCHONLEVEL - switchOnLevel: state.switchTurnedOnbyApp is ${state.switchTurnedOnbyApp}")
 
-    if(4speedfan == false){
+    if(settings.speedfan4 == false){
         writeLog("def SWITCHONLEVEL - using 3 Speed Mode fanDimmer.setLevel")
         fanDimmer.setLevel(level) 
     }
-    else if(4speedfan == true){
+    else if(settings.speedfan4 == true){
         writeLog("def SWITCHONLEVEL - using 4 Speed Mode fanDimmer.setFanSpeed")
         if(level == 99){
             fanDimmer.setFanSpeed(4)    
