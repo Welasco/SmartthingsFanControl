@@ -111,7 +111,9 @@ def parentPage() {
 
 def childStartPage() {
 	dynamicPage(name: "childStartPage", title: "Select your devices and settings", install: true, uninstall: true) {
-    
+        section("4 speed fan control:"){
+            input "speedfan4", "bool", title: "Enable if using 4 speed fan:", defaultValue: false, required: false
+        }     
         section("Select a room temperature sensor to control the fan..."){
 			input "tempSensor", "capability.temperatureMeasurement", multiple:false, title: "Temperature Sensor", required: true, submitOnChange: true  
 		}
@@ -120,18 +122,24 @@ def childStartPage() {
         		input "setpoint", "decimal", title: "Room Setpoint Temp", defaultValue: tempSensor.currentTemperature, required: true
     		}
         }
-        else 
+        else{
         	section("Enter the desired room temperature setpoint..."){
         		input "setpoint", "decimal", title: "Room Setpoint Temp", required: true
-    		}       
-        section("Select the ceiling fan control hardware..."){
-			input "fanDimmer", "capability.switchLevel", 
-	    	multiple:false, title: "Fan Control device", required: true
-		}
+    		}  
+        }
+             
 
-        section("4 speed fan control:"){
-            input "speedfan4", "bool", title: "Enable if using 4 speed fan:", defaultValue: false, required: false
-        }              
+        if(speedfan4){
+            section("Select the 4 speed ceiling fan control hardware..."){
+                //input "fanDimmer", "capability.switchLevel", multiple:false, title: "Fan Control device", required: true
+                input "fanDimmer", "capability.switch", multiple:false, title: "Fan Control device", required: true
+            }
+        }
+        else{
+            section("Select the 3 speed ceiling fan control hardware..."){
+			    input "fanDimmer", "capability.switchLevel", multiple:false, title: "Fan Control device", required: true
+		    }
+        }
 
 
         section("Optional Settings (Diff Temp, Timers, Motion, etc)") {
