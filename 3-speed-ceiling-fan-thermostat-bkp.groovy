@@ -11,9 +11,6 @@
    Victor Welasco (https://github.com/Welasco/SmartThingsPublic/blob/VictorWelasco/smartapps/dcoffing/3-speed-ceiling-fan-thermostat.src/3-speed-ceiling-fan-thermostat.groovy)
 
   Change Log
-  2018-09-23 Fixed bug related with scheduling where sometimes ST Motion sensor send the last motion some miliseconds before it had realy happen.
-             Changing the Differencial temperature logic.
-             Added more Differencial Temperature.
   2017-08-24 Add a Debug option and a lot of debug msgs. Debug must be activated at the App Leve to see the msgs on ST IDE. by Victor Welasco
   2017-08-09 Fixed Motion Sensor using SM sample: http://docs.smartthings.com/en/latest/getting-started/first-smartapp.html. by Victor Welasco
              Fixed SunSet SunRise bug, now we are using timeOfDayIsBetween. by Victor Welasco
@@ -145,7 +142,7 @@ def childStartPage() {
         section("Version Info, User's Guide") {
 // VERSION
 			href (name: "aboutPage", 
-			title: "3 Speed Ceiling Fan Thermostat \n"+"Version:3.09232018 \n"+"Copyright © 2016 Dale Coffing", 
+			title: "3 Speed Ceiling Fan Thermostat \n"+"Version:3.082417 \n"+"Copyright © 2016 Dale Coffing", 
 			description: "Tap to get user's guide.",
 			image: "https://raw.githubusercontent.com/dcoffing/SmartThingsPublic/master/smartapps/dcoffing/3-speed-ceiling-fan-thermostat.src/3scft125x125.png",
 			required: false,
@@ -158,7 +155,7 @@ def childStartPage() {
 def optionsPage() {
 	dynamicPage(name: "optionsPage", title: "Configure Optional Settings", install: false, uninstall: false) {
        	section("Enter the desired differential temp between fan speeds"){
-			input "fanDiffTempString", "enum", title: "Fan Differential Temp", options: ["0.5","1.0","1.5","2.0","2.5","3.0","10.0"], required: false
+			input "fanDiffTempString", "enum", title: "Fan Differential Temp", options: ["0.5","1.0","1.5","2.0","10.0"], required: false
 		}
 		section("Enable ceiling fan thermostat only if motion is detected at (optional, leave blank to not require motion)..."){
 			input "motionSensor", "capability.motionSensor", title: "Select Motion device", required: false, submitOnChange: true
@@ -341,87 +338,92 @@ def modeChangeHandler(evt){
 
 private tempCheck(currentTemp, desiredTemp)
 {
-    //writeLog("TEMPCHECK - called currentTemp:${currentTemp} desiredTemp:${desiredTemp}")
-	//writeLog("TEMPCHECK - TEMPCHECK#1(CT=$currentTemp,SP=$desiredTemp,FD=$fanDimmer.currentSwitch,FD_LVL=$fanDimmer.currentLevel, automode=$autoMode,FDTstring=$fanDiffTempString, FDTvalue=$fanDiffTempValue)")
+    writeLog("def TEMPCHECK - called currentTemp:${currentTemp} desiredTemp:${desiredTemp}")
+	writeLog("def TEMPCHECK - TEMPCHECK#1(CT=$currentTemp,SP=$desiredTemp,FD=$fanDimmer.currentSwitch,FD_LVL=$fanDimmer.currentLevel, automode=$autoMode,FDTstring=$fanDiffTempString, FDTvalue=$fanDiffTempValue)")
     //convert Fan Diff Temp input enum string to number value and if user doesn't select a Fan Diff Temp default to 1.0 
     //def fanDiffTempValue = (settings.fanDiffTempString != null && settings.fanDiffTempString != "") ? Double.parseDouble(settings.fanDiffTempString): 1.0
     def fanDiffTempValueSet = settings.fanDiffTempString
-	def diffTemp = currentTemp - desiredTemp
+	
     //if user doesn't select autoMode then default to "YES-Auto"
     def autoModeValue = (settings.autoMode != null && settings.autoMode != "") ? settings.autoMode : "YES-Auto"	
-	writeLog("TEMPCHECK - currentTemp:${currentTemp}, desiredTemp:${desiredTemp}, fanDiffTempValueSet:${fanDiffTempValueSet}, autoModeValue:${autoModeValue}")
-	//writeLog("TEMPCHECK - TEMPCHECK#1(CT=$currentTemp,SP=$desiredTemp,FD=$fanDimmer.currentSwitch,FD_LVL=$fanDimmer.currentLevel, automode=$autoMode,FDTstring=$fanDiffTempString, FDTvalue=$fanDiffTempValue)")
+	writeLog("def TEMPCHECK - fanDiffTempValueSet:${fanDiffTempValueSet} autoModeValue:${autoModeValue}")
+	writeLog("def TEMPCHECK - TEMPCHECK#1(CT=$currentTemp,SP=$desiredTemp,FD=$fanDimmer.currentSwitch,FD_LVL=$fanDimmer.currentLevel, automode=$autoMode,FDTstring=$fanDiffTempString, FDTvalue=$fanDiffTempValue)")
 	if (autoModeValue == "YES-Auto") {
         if(fanDiffTempValueSet){
             def fanDiffTempValue = (settings.fanDiffTempString != null && settings.fanDiffTempString != "") ? Double.parseDouble(settings.fanDiffTempString): 1.0
             def LowDiff = fanDiffTempValue*1 
             def MedDiff = fanDiffTempValue*2
-            def HighDiff = fanDiffTempValue*3   
-            writeLog("TEMPCHECK - fanDiffTempValue:${fanDiffTempValue}, LowDiff:${LowDiff}, MedDiff:${MedDiff}, HighDiff:${HighDiff}")        
-            
-            switch (diffTemp) {
-                case { it > MedDiff || it  >= HighDiff }:
+            def HighDiff = fanDiffTempValue*3    
+            writeLog("def TEMPCHECK - fanDiffTempValue:${fanDiffTempValue}, LowDiff:${LowDiff}, MedDiff:${MedDiff}, HighDiff:${HighDiff}")        
+            switch (currentTemp - desiredTemp) {
+                case { it  >= HighDiff }:
                     // turn on fan high speed
-                    writeLog("TEMPCHECK - HighDiff detected. Switchcase it value:${it}.")
-                    if(fanDimmer.currentLevel != 90 || fanDimmer.currentSwitch == "off"){
-                        writeLog("TEMPCHECK - Calling switchOnLevel 90")
+                    writeLog("def TEMPCHECK - HighDiff detected calling switchOnLevel 90")
+                    if(fanDimmer.currentLevel != 90){
                         switchOnLevel(90)
                     }
-                    writeLog("TEMPCHECK - HighDiff speed(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, HighDiff=$HighDiff)")
+                    writeLog("def TEMPCHECK - HI speed(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, HighDiff=$HighDiff)")
                 break  //exit switch statement 
-                case { it > LowDiff && it <= MedDiff}:
-                    // turn on fan medium speed
-                    writeLog("TEMPCHECK - MedDiff detected. Switchcase it value:${it}.")
-                    if(fanDimmer.currentLevel != 60 || fanDimmer.currentSwitch == "off"){
-                        writeLog("TEMPCHECK - Calling switchOnLevel 60")
-                        switchOnLevel(60)
-                    }
-                    writeLog("TEMPCHECK - MedDiff speed(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, MedDiff=$MedDiff)")
-                    break
-                case { it > 0 && it <= LowDiff }:
+                case { it >= MedDiff }:
+                        // turn on fan medium speed
+                        writeLog("def TEMPCHECK - MedDiff detected calling switchOnLevel 60")
+                        if(fanDimmer.currentLevel != 60){
+                            switchOnLevel(60)
+                        }
+                        writeLog("MED speed(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, MedDiff=$MedDiff)")
+                        break
+                case { it >= LowDiff }:
                     // turn on fan low speed
-                    writeLog("TEMPCHECK - LowDiff detected. Switchcase it value:${it}.")
-                    if (fanDimmer.currentLevel != 30 || fanDimmer.currentSwitch == "off") {
-                        writeLog("TEMPCHECK - Calling switchOnLevel 30")
-                        switchOnLevel(30)
-                    }
-                    writeLog("TEMPCHECK - LowDiff speed (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, LowDiff=$LowDiff)")
+                    writeLog("def TEMPCHECK - LowDiff detected calling switchOnLevel 30")
+                    if (fanDimmer.currentSwitch == "off") {		// if fan is OFF to make it easier on motor by   
+                        writeLog("def TEMPCHECK - LowDiff detected fanDimmer was off")
+                        writeLog("def TEMPCHECK - LowDiff detected calling switchOnLevel 90 to start the fan at maximum speed")
+                        switchOnLevel(90)					// starting fan in High speed temporarily then 
+                        writeLog("def TEMPCHECK - LowDiff detected calling switchOnLevel 30 in 5 seconds")
+                        switchOnLevel(30, [delay: 5000])	// change to Low speed after 5 second
+                        writeLog("LO speed after HI 3secs(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, LowDiff=$LowDiff)")
+                    } else {
+                        writeLog("def TEMPCHECK - LowDiff detected fanDimmer was ON calling switchOnLevel 30")
+                        if(fanDimmer.currentLevel != 30){
+                            switchOnLevel(30)	//fan is already running, not necessary to protect motor
+                        }                           //set Low speed immediately
+                    }							    
+                    writeLog("def TEMPCHECK - LO speed immediately(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, LowDiff=$LowDiff)")
                     break
             default:
                     // check to see if fan should be turned off
-                    writeLog("TEMPCHECK - SwitchCase Default detected. Switchcase it value:${it}.")
-                    if (fanDimmer.currentSwitch != "off") {
-                        writeLog("TEMPCHECK - Calling switchOff()")
-                        switchOff()
-                    }
-                    writeLog("TEMPCHECK - Default Off (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, LowDiff=$LowDiff)")
-                    //writeLog("TEMPCHECK - below SP+Diff=fan OFF (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, FD=$fanDimmer.currentSwitch,autoMode=$autoMode,)")
-                    //writeLog("TEMPCHECK - autoMode YES-MANUAL? else OFF(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, FD=$fanDimmer.currentSwitch,autoMode=$autoMode,)")
-            }	              
+                    if (desiredTemp - currentTemp >= 0 ) {	//below or equal to setpoint, turn off fan, zero level
+                        if (fanDimmer.currentSwitch != "off") {
+                            switchOff()
+                        }
+                        writeLog("def TEMPCHECK - below SP+Diff=fan OFF (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, FD=$fanDimmer.currentSwitch,autoMode=$autoMode,)")
+                    } 
+                    writeLog("def TEMPCHECK - autoMode YES-MANUAL? else OFF(CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, FD=$fanDimmer.currentSwitch,autoMode=$autoMode,)")
+            }	
         }
         else{
             // In case the differential temp is off we will just turn it on or off not checking the fan speed
             // defining difftemp - if it's a positive value turn the fan on or turn the fan off
-            writeLog("TEMPCHECK - differential temp is off checking if we must turn it on! (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel)")
-            //def diffTemp = currentTemp - desiredTemp
+            writeLog("def TEMPCHECK - differential temp is off checking if we must turn it on! (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel)")
+            def diffTemp = currentTemp - desiredTemp
             if(diffTemp >= 0){
-                writeLog("TEMPCHECK - Turrning the Fan On if it's not already on (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel)")
+                writeLog("def TEMPCHECK - Turrning the Fan On if it's not already on (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel)")
                 if (fanDimmer.currentSwitch != "on") {
-                    writeLog("TEMPCHECK - Fan wasn't running, turnning it On to 99")
+                    writeLog("def TEMPCHECK - Fan wasn't running, turnning it On to 99")
                     switchOnLevel(99)
                 }
             }
             else{
-                writeLog("TEMPCHECK - below SP+Diff=fan OFF if it's not already off (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, FD=$fanDimmer.currentSwitch,autoMode=$autoMode,)")
+                writeLog("def TEMPCHECK - below SP+Diff=fan OFF if it's not already off (CT=$currentTemp, SP=$desiredTemp, FD-LVL=$fanDimmer.currentLevel, FD=$fanDimmer.currentSwitch,autoMode=$autoMode,)")
                 if (fanDimmer.currentSwitch != "off") {
-                    writeLog("TEMPCHECK - Fan was running, turnning it Off")
+                    writeLog("def TEMPCHECK - Fan was running, turnning it Off")
                     switchOff()
                 }                
             }
         }
 	}
     else{
-        writeLog("TEMPCHECK - autoModeValue off doing nothing!")
+        writeLog("def TEMPCHECK - autoModeValue off doing nothing!")
     }
 }
 
@@ -451,10 +453,8 @@ private hasBeenRecentMotion()
         writeLog("def HASBEENRECENTMOTION - motionState value:${motionState.value}")
         if (motionState.value == "inactive") {
             // get the time elapsed between now and when the motion reported inactive
-            //def elapsed = now() - motionState.date.time
-            // Adding 20 seconds to the elapsed time because some times Motion Sensor advertise the with a few miliseconds of difference
-            def elapsed = ((now() - motionState.date.time) + 20000)
-            
+            def elapsed = now() - motionState.date.time
+
             // elapsed time is in milliseconds, so the threshold must be converted to milliseconds too
             def threshold = 1000 * 60 * minutesNoMotion
             writeLog("def HASBEENRECENTMOTION - elapsed:${elapsed} threshold:${threshold}")
@@ -594,7 +594,7 @@ private def textHelp() {
         " For example, if the desired room temperature setpoint is 72, the low speed"+
         " turns on first at 73, the medium speed turns on at 74, the high speed turns"+
         " on at 75. And vice versa on decreasing temperature until at 72 the ceiling"+
-        " fan turns off. The differential is adjustable from 0.5 to 3.0 in half degree increments. \n\n" +
+        " fan turns off. The differential is adjustable from 0.5 to 2.0 in half degree increments. \n\n" +
         "A notable feature is when low speed is initially requested from"+
         " the off condition, high speed is turned on briefly to overcome the startup load"+
         " then low speed is engaged. This mimics the pull chain switches that most"+
